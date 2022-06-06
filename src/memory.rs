@@ -1,7 +1,7 @@
 const MAX_SIZE: u16 = 0x1000;
 
 const PROG_LOC: u16 = 0x0200;
-const DISPLAY_LOC: u16 = 0x0F00;
+pub const DISPLAY_LOC: u16 = 0x0F00;
 
 pub struct Memory {
     data: [u8; MAX_SIZE as usize],
