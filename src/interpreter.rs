@@ -104,10 +104,9 @@ impl Interpreter {
                 let vx = self.vx[x as usize];
                 let vy = self.vx[y as usize];
 
-                let mut col = 0;
                 let mut row = 0;
                 for sprite_byte_addr in self.vi..(self.vi + n as u16) {
-                    col = 0;
+                    let mut col = 0;
 
                     let sprite_byte = memory.read(sprite_byte_addr);
 
