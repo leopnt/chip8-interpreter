@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# window creation
 winit = "0.26.1"
 winit_input_helper = "0.12.0"
+
+# draw textures / pixel buffers
 pixels = "0.9.0"
+
+# static hashmaps
+lazy_static = "1.4"

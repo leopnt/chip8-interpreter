@@ -1,9 +1,13 @@
 use crate::display::Display;
+use crate::keyconf::{COSMACVIP, KEYCONFIG};
 use crate::memory;
 use crate::memory::Memory;
 
+use winit_input_helper::WinitInputHelper;
+
 const STACK_SIZE: u8 = 0xff;
 const NUM_REGISTERS: u8 = 16;
+const NUM_KEYS: u8 = 16;
 
 pub struct Interpreter {
     stack: [u8; STACK_SIZE as usize], // stack is here instead of in-memory
@@ -12,6 +16,7 @@ pub struct Interpreter {
     pub pc: u16,                      // program counter
     dt: u8,                           // delay timer
     st: u8,                           // sound timer
+    key_held: [bool; NUM_KEYS as usize],
     stop: bool,
 }
 
@@ -24,6 +29,7 @@ impl Interpreter {
             dt: 0,
             st: 0,
             stack: [0; STACK_SIZE as usize],
+            key_held: [false; NUM_KEYS as usize],
             stop: false,
         }
     }
@@ -38,6 +44,16 @@ impl Interpreter {
 
     pub fn vf(&self) -> u8 {
         self.vx[15]
+    }
+
+    pub fn apply_input(&mut self, input: &WinitInputHelper) {
+        self.key_held = [false; NUM_KEYS as usize]; // reset keys
+
+        for (key, virtualkeycode) in KEYCONFIG.iter() {
+            if input.key_held(*virtualkeycode) {
+                self.key_held[*key as usize] = true;
+            }
+        }
     }
 
     pub fn stop(&self) -> bool {

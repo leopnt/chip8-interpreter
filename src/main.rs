@@ -1,6 +1,7 @@
 #[forbid(unsafe_code)]
 mod display;
 mod interpreter;
+mod keyconf;
 mod memory;
 
 use display::Display;
@@ -10,6 +11,9 @@ use memory::Memory;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
+
+#[macro_use]
+extern crate lazy_static;
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -76,6 +80,8 @@ fn main() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
+
+            interpreter.apply_input(&input);
 
             // Resize the window
             if let Some(size) = input.window_resized() {
