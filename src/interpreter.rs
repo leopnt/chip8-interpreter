@@ -5,18 +5,18 @@ use crate::memory::Memory;
 
 use winit_input_helper::WinitInputHelper;
 
-const STACK_SIZE: u8 = 0xff;
-const NUM_REGISTERS: u8 = 16;
-const NUM_KEYS: u8 = 16;
+const STACK_SIZE: usize = 0xff;
+const NUM_REGISTERS: usize = 16;
+const NUM_KEYS: usize = 16;
 
 pub struct Interpreter {
-    stack: [u8; STACK_SIZE as usize], // stack is here instead of in-memory
-    vi: u16,                          // index register
-    vx: [u8; NUM_REGISTERS as usize], // registers V0 to VF
-    pub pc: u16,                      // program counter
-    dt: u8,                           // delay timer
-    st: u8,                           // sound timer
-    key_held: [bool; NUM_KEYS as usize],
+    stack: [u8; STACK_SIZE], // stack is here instead of in-memory
+    vi: u16,                 // index register
+    vx: [u8; NUM_REGISTERS], // registers V0 to VF
+    pub pc: u16,             // program counter
+    dt: u8,                  // delay timer
+    st: u8,                  // sound timer
+    key_held: [bool; NUM_KEYS],
     stop: bool,
 }
 
@@ -24,12 +24,12 @@ impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
             vi: 0,
-            vx: [0; NUM_REGISTERS as usize],
+            vx: [0; NUM_REGISTERS],
             pc: 0x0200,
             dt: 0,
             st: 0,
-            stack: [0; STACK_SIZE as usize],
-            key_held: [false; NUM_KEYS as usize],
+            stack: [0; STACK_SIZE],
+            key_held: [false; NUM_KEYS],
             stop: false,
         }
     }
@@ -47,7 +47,7 @@ impl Interpreter {
     }
 
     pub fn apply_input(&mut self, input: &WinitInputHelper) {
-        self.key_held = [false; NUM_KEYS as usize]; // reset keys
+        self.key_held = [false; NUM_KEYS]; // reset keys
 
         for (key, virtualkeycode) in KEYCONFIG.iter() {
             if input.key_held(*virtualkeycode) {
