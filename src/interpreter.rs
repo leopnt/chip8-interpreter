@@ -46,6 +46,24 @@ impl Interpreter {
         self.vx[15]
     }
 
+    pub fn decrement_timers(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
+
+        if self.st > 0 {
+            self.st -= 1;
+        }
+    }
+
+    fn set_dt(&mut self, value: u8) {
+        self.dt = value;
+    }
+
+    fn set_st(&mut self, value: u8) {
+        self.st = value;
+    }
+
     pub fn apply_input(&mut self, input: &WinitInputHelper) {
         self.key_held = [false; NUM_KEYS]; // reset keys
 

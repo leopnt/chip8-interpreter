@@ -85,6 +85,7 @@ fn main() {
                 return;
             }
 
+            interpreter.decrement_timers();
             interpreter.apply_input(&input);
 
             // Resize the window
