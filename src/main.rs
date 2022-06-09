@@ -12,6 +12,8 @@ use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
 
+use std::time::Instant;
+
 #[macro_use]
 extern crate lazy_static;
 
@@ -57,6 +59,8 @@ fn main() {
         0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0x80, 0x00, 0xe0, 0x00, 0xe0,
     ]);
 
+    let mut start = Instant::now();
+    let mut delta: f32 = 0.0;
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
@@ -91,6 +95,9 @@ fn main() {
             // Update internal state and request a redraw
             interpreter.step(&mut memory);
             display.window().request_redraw();
+            let elapsed = start.elapsed();
+            delta = (elapsed.as_micros() as f32) / 1000_000.0;
+            start = Instant::now();
         }
     })
 }
