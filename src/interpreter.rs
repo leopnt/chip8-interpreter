@@ -95,10 +95,16 @@ impl Interpreter {
         }
 
         match Interpreter::mode(opcode) {
-            // clear screen
             0x0 => {
-                for pixel_addr in 0x00..0xFF {
-                    memory.write(memory::DISPLAY_LOC + pixel_addr, 0);
+                let nnn = Interpreter::nnn(opcode);
+                match nnn {
+                    // clear screen
+                    0x0E0 => {
+                        for pixel_addr in 0x00..0xFF {
+                            memory.write(memory::DISPLAY_LOC + pixel_addr, 0);
+                        }
+                    }
+                    _ => panic!("Unkown opcode"),
                 }
             }
 
