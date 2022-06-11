@@ -10,12 +10,13 @@ const NUM_REGISTERS: usize = 16;
 const NUM_KEYS: usize = 16;
 
 pub struct Interpreter {
-    stack: [u8; STACK_SIZE], // stack is here instead of in-memory
-    vi: u16,                 // index register
-    vx: [u8; NUM_REGISTERS], // registers V0 to VF
-    pub pc: u16,             // program counter
-    dt: u8,                  // delay timer
-    st: u8,                  // sound timer
+    stack: [u16; STACK_SIZE], // stack is here instead of in-memory
+    sc: u8,                   // stack counter
+    vi: u16,                  // index register
+    vx: [u8; NUM_REGISTERS],  // registers V0 to VF
+    pub pc: u16,              // program counter
+    dt: u8,                   // delay timer
+    st: u8,                   // sound timer
     key_held: [bool; NUM_KEYS],
     stop: bool,
 }
@@ -29,6 +30,7 @@ impl Interpreter {
             dt: 0,
             st: 0,
             stack: [0; STACK_SIZE],
+            sc: 0,
             key_held: [false; NUM_KEYS],
             stop: false,
         }
@@ -88,6 +90,16 @@ impl Interpreter {
         mem.read_u16(self.pc)
     }
 
+    pub fn stack_push(&mut self, value: u16) {
+        self.stack[self.sc as usize] = value;
+        self.sc += 1;
+    }
+
+    pub fn stack_pop(&mut self) -> u16 {
+        self.sc -= 1;
+        self.stack[self.sc as usize]
+    }
+
     fn exec(&mut self, opcode: u16, memory: &mut Memory) {
         if opcode == 0x0000 {
             self.stop = true;
@@ -104,6 +116,10 @@ impl Interpreter {
                             memory.write(memory::DISPLAY_LOC + pixel_addr, 0);
                         }
                     }
+                    0x0EE => {
+                        self.pc = self.stack_pop();
+                    }
+
                     _ => panic!("Unkown opcode"),
                 }
             }
@@ -112,6 +128,12 @@ impl Interpreter {
             0x1 => {
                 let nnn = Interpreter::nnn(opcode);
                 self.pc = nnn;
+            }
+
+            // subroutines
+            0x2 => {
+                self.stack_push(self.pc);
+                self.pc = Interpreter::nnn(opcode);
             }
 
             // set register VX
@@ -333,5 +355,19 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_subroutines() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[0x00, 0xE0, 0x22, 0x06, 0x00, 0x00, 0xA0, 0xC0, 0x00, 0xEE]); // clear screen, jump to 0x0206 subroutine, set VI and return
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x0206, interpreter.pc);
+        assert_eq!(0x0C0, interpreter.vi);
     }
 }
