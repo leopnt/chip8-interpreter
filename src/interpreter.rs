@@ -136,6 +136,38 @@ impl Interpreter {
                 self.pc = Interpreter::nnn(opcode);
             }
 
+            // skip if VX == nn
+            0x3 => {
+                let x = Interpreter::x(opcode);
+                let nn = Interpreter::nn(opcode);
+                if self.vx[x as usize] == nn {
+                    self.pc += 2;
+                }
+            }
+
+            // skip if VX != nn
+            0x4 => {
+                let x = Interpreter::x(opcode);
+                let nn = Interpreter::nn(opcode);
+                if self.vx[x as usize] != nn {
+                    self.pc += 2;
+                }
+            }
+
+            // skip if VX == VY
+            0x5 => {
+                let n = Interpreter::n(opcode);
+                if n != 0 {
+                    panic!("Unknown instruction");
+                }
+
+                let x = Interpreter::x(opcode);
+                let y = Interpreter::y(opcode);
+                if self.vx[x as usize] == self.vx[y as usize] {
+                    self.pc += 2;
+                }
+            }
+
             // set register VX
             0x6 => {
                 let x = Interpreter::x(opcode);
@@ -149,6 +181,20 @@ impl Interpreter {
                 let nn = Interpreter::nn(opcode);
                 let vx = self.vx[x as usize];
                 self.set_vx(x, vx.wrapping_add(nn));
+            }
+
+            // skip if VX != VY
+            0x9 => {
+                let n = Interpreter::n(opcode);
+                if n != 0 {
+                    panic!("Unknown instruction");
+                }
+
+                let x = Interpreter::x(opcode);
+                let y = Interpreter::y(opcode);
+                if self.vx[x as usize] != self.vx[y as usize] {
+                    self.pc += 2;
+                }
             }
 
             // set index register
@@ -369,5 +415,42 @@ mod tests {
 
         assert_eq!(0x0206, interpreter.pc);
         assert_eq!(0x0C0, interpreter.vi);
+    }
+
+    #[test]
+    fn test_skip_if_vx_equals_nn() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0xAA, // set V0
+            0x30, 0xAA, 0x00, 0x00, // skip next if V0 == 0xAA
+            0x40, 0xBB, 0x00, 0x00, // skip next if V0 != 0xBB
+            0xAC, 0xC0, 0x00, 0x00, // set VI to 0xCC0
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0xCC0, interpreter.vi);
+    }
+
+    #[test]
+    fn test_skip_if_vx_equals_vy() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0xAA, 0x61, 0xAA, // set V0, V1
+            0x50, 0x10, 0x00, 0x00, // skip next if V0 == V1
+            0x60, 0xAA, 0x61, 0xBB, // set V0, V1
+            0x90, 0x10, 0x00, 0x00, // skip next if V0 != V1
+            0xAC, 0xC0, 0x00, 0x00, // set VI to 0xCC0
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0xCC0, interpreter.vi);
     }
 }
