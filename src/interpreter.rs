@@ -183,6 +183,81 @@ impl Interpreter {
                 self.set_vx(x, vx.wrapping_add(nn));
             }
 
+            // logical and arithmetic instructions
+            0x8 => {
+                let n = Interpreter::n(opcode);
+                let x = Interpreter::x(opcode);
+                let y = Interpreter::y(opcode);
+
+                let vx = self.vx[x as usize];
+                let vy = self.vx[y as usize];
+
+                match n {
+                    // set VX to the value of VY
+                    0x0 => {
+                        self.set_vx(x, vy);
+                    }
+
+                    // binary OR
+                    0x1 => {
+                        self.set_vx(x, vx | vy);
+                    }
+
+                    // binary AND
+                    0x2 => {
+                        self.set_vx(x, vx & vy);
+                    }
+
+                    // logical XOR
+                    0x3 => {
+                        self.set_vx(x, vx ^ vy);
+                    }
+
+                    // add
+                    0x4 => {
+                        let overflows = vx.checked_add(vy).is_none() as u8;
+                        println!("{}", overflows);
+
+                        self.set_vx(x, vx.wrapping_add(vy));
+                        self.set_vf(overflows);
+                    }
+
+                    // substract VX - VY
+                    0x5 => {
+                        let underflows = vx.checked_sub(vy).is_none() as u8;
+
+                        self.set_vx(x, vx.wrapping_sub(vy));
+                        self.set_vf(1 - underflows); // 0 if underflows else 1
+                    }
+
+                    // substract VY - VX
+                    0x7 => {
+                        let underflows = vy.checked_sub(vx).is_none() as u8;
+
+                        self.set_vx(x, vy.wrapping_sub(vx));
+                        self.set_vf(1 - underflows); // 0 if underflows else 1
+                    }
+
+                    // shift 1 bit to the right
+                    0x6 => {
+                        // TODO: optional of configurable: set vx to vy
+                        let shifted_bit = vx & 0b0000_0001;
+                        self.set_vx(x, vx >> 1);
+                        self.set_vf(shifted_bit);
+                    }
+
+                    // shift 1 bit to the left
+                    0xE => {
+                        // TODO: optional of configurable: set vx to vy
+                        let shifted_bit = (vx & 0b1000_0000) >> 7;
+                        self.set_vx(x, vx << 1);
+                        self.set_vf(shifted_bit);
+                    }
+
+                    _ => panic!("Unknown N for instruction: 0x8XYN"),
+                }
+            }
+
             // skip if VX != VY
             0x9 => {
                 let n = Interpreter::n(opcode);
@@ -452,5 +527,150 @@ mod tests {
         }
 
         assert_eq!(0xCC0, interpreter.vi);
+    }
+
+    #[test]
+    fn test_logical_arithmetic_set() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0xAA, 0x61, 0xBB, // set V0, V1
+            0x80, 0x10, 0x00, 0x00, // set V0 to V1
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0xBB, interpreter.vx[0]);
+    }
+
+    #[test]
+    fn test_logical_arithmetic_binary_or() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x00, 0x61, 0x00, // set V0, V1
+            0x62, 0x00, 0x63, 0x01, // set V2, V3
+            0x64, 0x01, 0x65, 0x00, // set V4, V5
+            0x66, 0x01, 0x67, 0x01, // set V6, V7
+            0x80, 0x11, 0x82, 0x31, // V0 = V0 | V1, V2 = V2 | V3
+            0x84, 0x51, 0x86, 0x71, // V4 = V4 | V5, V6 = V6 | V7
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x00, interpreter.vx[0]);
+        assert_eq!(0x01, interpreter.vx[2]);
+        assert_eq!(0x01, interpreter.vx[4]);
+        assert_eq!(0x01, interpreter.vx[6]);
+    }
+
+    #[test]
+    fn test_logical_arithmetic_binary_and() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x00, 0x61, 0x00, // set V0, V1
+            0x62, 0x00, 0x63, 0x01, // set V2, V3
+            0x64, 0x01, 0x65, 0x00, // set V4, V5
+            0x66, 0x01, 0x67, 0x01, // set V6, V7
+            0x80, 0x12, 0x82, 0x32, // V0 = V0 & V1, V2 = V2 & V3
+            0x84, 0x52, 0x86, 0x72, // V4 = V4 & V5, V6 = V6 & V7
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x00, interpreter.vx[0]);
+        assert_eq!(0x00, interpreter.vx[2]);
+        assert_eq!(0x00, interpreter.vx[4]);
+        assert_eq!(0x01, interpreter.vx[6]);
+    }
+
+    #[test]
+    fn test_logical_arithmetic_binary_xor() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x00, 0x61, 0x00, // set V0, V1
+            0x62, 0x00, 0x63, 0x01, // set V2, V3
+            0x64, 0x01, 0x65, 0x00, // set V4, V5
+            0x66, 0x01, 0x67, 0x01, // set V6, V7
+            0x80, 0x13, 0x82, 0x33, // V0 = V0 ^ V1, V2 = V2 ^ V3
+            0x84, 0x53, 0x86, 0x73, // V4 = V4 ^ V5, V6 = V6 ^ V7
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x00, interpreter.vx[0]);
+        assert_eq!(0x01, interpreter.vx[2]);
+        assert_eq!(0x01, interpreter.vx[4]);
+        assert_eq!(0x00, interpreter.vx[6]);
+    }
+
+    #[test]
+    fn test_logical_arithmetic_and() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0xFC, 0x61, 0x03, // set V0, V1
+            0x80, 0x14, 0x80, 0x14, // V0 = V0 + V1, V0 = V0 + V1 -> overflow
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x02, interpreter.vx[0]);
+        assert_eq!(0x01, interpreter.vf());
+    }
+
+    #[test]
+    fn test_logical_arithmetic_sub() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0xFF, 0x61, 0x01, // set V0, V1
+            0x62, 0x02, 0x63, 0x00, // set V2, V3
+            0x80, 0x15, 0x82, 0x37, // V0 = V0 - V1, V2 = V3 - V2 -> underflow
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0xFE, interpreter.vx[0]);
+        assert_eq!(0xFE, interpreter.vx[2]);
+        assert_eq!(0x00, interpreter.vf());
+    }
+
+    #[test]
+    fn test_logical_arithmetic_bit_shift() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x02, 0x61, 0xFF, // set V0, V1
+            0x80, 0x06, 0x81, 0x1E, // V0 = V0 >> 1, V1 = V1 << 1
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0b0000_0001, interpreter.vx[0]);
+        assert_eq!(0b1111_1110, interpreter.vx[1]);
+        assert_eq!(0x01, interpreter.vf());
     }
 }
