@@ -402,7 +402,7 @@ mod tests {
     #[test]
     fn test_jump() {
         let mut mem = Memory::new();
-        mem.load_prog(&[0x12, 0x04, 0x55, 0x55, 0x00, 0x00]);
+        mem.load_prog(&[0x12, 0x04, 0x00, 0x00]);
         let mut interpreter = Interpreter::new();
 
         while !interpreter.stop() {
