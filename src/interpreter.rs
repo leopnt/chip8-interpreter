@@ -278,6 +278,13 @@ impl Interpreter {
                 self.vi = nnn;
             }
 
+            // jump with offset
+            0xB => {
+                // TODO: configurable instruction with BXNN (see SUPER-CHIP)
+                let nnn = Interpreter::nnn(opcode);
+                self.pc = nnn + self.vx[0] as u16;
+            }
+
             // draw to screen
             0xD => {
                 let x = Interpreter::x(opcode);
@@ -403,6 +410,23 @@ mod tests {
         }
 
         assert_eq!(0x0206, interpreter.pc);
+    }
+
+    #[test]
+    fn test_jump_with_offset() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x01, // set V0 to 0x01
+            0xB2, 0x04, // jump to 0x204 + V0
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x0207, interpreter.pc);
     }
 
     #[test]
