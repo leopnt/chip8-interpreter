@@ -13,3 +13,6 @@ pixels = "0.9.0"
 
 # static hashmaps
 lazy_static = "1.4"
+
+# random number generation
+rand = "0.8.5"

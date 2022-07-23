@@ -5,6 +5,8 @@ use crate::memory::Memory;
 
 use winit_input_helper::WinitInputHelper;
 
+use rand::Rng;
+
 const STACK_SIZE: usize = 0xff;
 const NUM_REGISTERS: usize = 16;
 const NUM_KEYS: usize = 16;
@@ -283,6 +285,16 @@ impl Interpreter {
                 // TODO: configurable instruction with BXNN (see SUPER-CHIP)
                 let nnn = Interpreter::nnn(opcode);
                 self.pc = nnn + self.vx[0] as u16;
+            }
+
+            // random
+            0xC => {
+                let nn = Interpreter::nn(opcode);
+                let x = Interpreter::x(opcode);
+
+                let r: u8 = rand::thread_rng().gen();
+
+                self.set_vx(x, r & nn);
             }
 
             // draw to screen
