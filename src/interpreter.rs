@@ -338,6 +338,32 @@ impl Interpreter {
                 }
             }
 
+            // skip if key
+            0xE => {
+                let x = Interpreter::x(opcode);
+                let vx = self.vx[x as usize];
+
+                let is_key_pressed_at_vx = self.key_held[vx as usize];
+
+                let nn = Interpreter::nn(opcode);
+
+                match nn {
+                    0x9E => {
+                        if is_key_pressed_at_vx {
+                            self.pc += 2;
+                        }
+                    }
+
+                    0xA1 => {
+                        if !is_key_pressed_at_vx {
+                            self.pc += 2;
+                        }
+                    }
+
+                    _ => panic!("Unknown NN for instruction: 0xEXNN"),
+                }
+            }
+
             _ => panic!("Unknown mode"),
         }
     }
@@ -708,5 +734,43 @@ mod tests {
         assert_eq!(0b0000_0001, interpreter.vx[0]);
         assert_eq!(0b1111_1110, interpreter.vx[1]);
         assert_eq!(0x01, interpreter.vf());
+    }
+
+    #[test]
+    fn test_skip_if_key_pressed() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x0A, // set V0
+            0xE0, 0x9E, 0x00, 0x00, // skip next if V0 == 0xAA
+            0xAC, 0xC0, 0x00, 0x00, // set VI to 0xCC0
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            // emulate key 0x0A pressed
+            interpreter.key_held[0x0A] = true;
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0xCC0, interpreter.vi);
+    }
+
+    #[test]
+    fn test_skip_if_key_not_pressed() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x0A, // set V0
+            0xE0, 0xA1, 0x00, 0x00, // skip next if V0 == 0xAA
+            0xAC, 0xC0, 0x00, 0x00, // set VI to 0xCC0
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            // emulate key 0x0A not pressed
+            interpreter.key_held[0x0A] = false;
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0xCC0, interpreter.vi);
     }
 }
