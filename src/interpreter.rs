@@ -381,6 +381,9 @@ impl Interpreter {
                     // set sound timer to vx
                     0x18 => self.set_st(vx),
 
+                    // add to index
+                    0x1E => self.vi = self.vi.wrapping_add(vx as u16),
+
                     _ => panic!("Unknown NN for instruction: 0xFXNN"),
                 }
             }
@@ -830,5 +833,23 @@ mod tests {
         }
 
         assert_eq!(0x00, interpreter.vx[0]);
+    }
+
+    #[test]
+    fn test_add_to_index() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0xAC, 0xC0, // set VI to 0xCC0
+            0x60, 0x02, // set V0 to 0x02
+            0xF0, 0x1E, // VI = VI + V0
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0xCC2, interpreter.vi);
     }
 }
