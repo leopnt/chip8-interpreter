@@ -364,6 +364,27 @@ impl Interpreter {
                 }
             }
 
+            // miscellaneous
+            0xF => {
+                let x = Interpreter::x(opcode);
+                let vx = self.vx[x as usize];
+
+                let nn = Interpreter::nn(opcode);
+
+                match nn {
+                    // read delay timer to vx
+                    0x07 => self.set_vx(x, self.dt),
+
+                    // set delay timer to vx
+                    0x15 => self.set_dt(vx),
+
+                    // set sound timer to vx
+                    0x18 => self.set_st(vx),
+
+                    _ => panic!("Unknown NN for instruction: 0xFXNN"),
+                }
+            }
+
             _ => panic!("Unknown mode"),
         }
     }
@@ -772,5 +793,42 @@ mod tests {
         }
 
         assert_eq!(0xCC0, interpreter.vi);
+    }
+
+    #[test]
+    fn test_set_timers() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x0A, // set V0
+            0xF0, 0x15, 0xF0, 0x18, // delay timer = V0, sound timer = V0
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        interpreter.decrement_timers();
+
+        assert_eq!(0x0A - 1, interpreter.dt);
+        assert_eq!(0x0A - 1, interpreter.st);
+    }
+
+    #[test]
+    fn test_read_delay_timer() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0xAA, // set V0 to 0xAA
+            0xF0, 0x07, // set V0 to delay timer
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x00, interpreter.vx[0]);
     }
 }
