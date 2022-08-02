@@ -78,6 +78,17 @@ impl Interpreter {
         }
     }
 
+    /// Returns the index of the pressed key if there is one (the first in the array)
+    pub fn get_first_key_pressed(&self) -> Option<usize> {
+        for (key_idx, &pressed) in self.key_held.iter().enumerate() {
+            if pressed {
+                return Some(key_idx);
+            }
+        }
+
+        None
+    }
+
     pub fn stop(&self) -> bool {
         self.stop
     }
@@ -383,6 +394,18 @@ impl Interpreter {
 
                     // add to index
                     0x1E => self.vi = self.vi.wrapping_add(vx as u16),
+
+                    // get key
+                    0x0A => {
+                        let first_key_pressed = self.get_first_key_pressed();
+                        if first_key_pressed.is_some() {
+                            self.set_vx(x, first_key_pressed.unwrap() as u8);
+                        }
+                        // go back (e.g. loop) until key press
+                        else {
+                            self.pc -= 2;
+                        }
+                    }
 
                     _ => panic!("Unknown NN for instruction: 0xFXNN"),
                 }
