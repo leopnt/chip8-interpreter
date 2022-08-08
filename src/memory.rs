@@ -3,6 +3,7 @@ const MAX_SIZE: u16 = 0x1000;
 const PROG_LOC: u16 = 0x0200;
 pub const DISPLAY_LOC: u16 = 0x0F00;
 pub const FONT_LOC: u16 = 0x0050;
+pub const FONT_CHAR_SIZE: u16 = 5; // bytes
 
 pub struct Memory {
     data: [u8; MAX_SIZE as usize],

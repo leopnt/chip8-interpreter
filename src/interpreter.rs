@@ -407,6 +407,15 @@ impl Interpreter {
                         }
                     }
 
+                    // font character
+                    0x29 => {
+                        let x = Interpreter::x(opcode);
+                        let vx = self.vx[x as usize];
+
+                        let offset = (vx as u16) * memory::FONT_CHAR_SIZE;
+                        self.vi = memory::FONT_LOC + offset;
+                    }
+
                     _ => panic!("Unknown NN for instruction: 0xFXNN"),
                 }
             }
@@ -874,5 +883,45 @@ mod tests {
         }
 
         assert_eq!(0xCC2, interpreter.vi);
+    }
+
+    #[test]
+    fn test_font_character() {
+        let font = [
+            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+            0x20, 0x60, 0x20, 0x20, 0x70, // 1
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+        ];
+
+        let mut mem = Memory::new();
+        mem.load_font(&font);
+
+        mem.load_prog(&[
+            0x60, 0x0A, // set V0 to 0x0A
+            0xF0, 0x29, // VI = mem addr of character of hex at V0
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        // hex(0x050 + 5 * 0x0A) = 0x82
+        assert_eq!(0x82, interpreter.vi);
+        assert_eq!(0xF0, mem.read(interpreter.vi));
     }
 }
