@@ -441,6 +441,16 @@ impl Interpreter {
                         }
                     }
 
+                    // read mem to registers
+                    0x65 => {
+                        // TODO: configurable instruction
+                        let x_max = Interpreter::x(opcode);
+                        for x in 0..(x_max + 1) {
+                            let addr = self.vi + x as u16;
+                            self.vx[x as usize] = memory.read(addr);
+                        }
+                    }
+
                     _ => panic!("Unknown NN for instruction: 0xFXNN"),
                 }
             }
@@ -991,5 +1001,29 @@ mod tests {
         assert_eq!(0x9D, mem.read(0x501));
         assert_eq!(0x9E, mem.read(0x502));
         assert_eq!(0x00, mem.read(0x503));
+    }
+
+    #[test]
+    fn test_registers_read_mem() {
+        let mut mem = Memory::new();
+        mem.write(0x500, 0x9C);
+        mem.write(0x501, 0x9D);
+        mem.write(0x502, 0x9E);
+
+        mem.load_prog(&[
+            0xA5, 0x00, // VI = 0x500
+            0xF2, 0x65, // mem read V0..(V2 + 1) at addr VI
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(0x9C, interpreter.vx[0]);
+        assert_eq!(0x9D, interpreter.vx[1]);
+        assert_eq!(0x9E, interpreter.vx[2]);
+        assert_eq!(0x00, interpreter.vx[3]);
     }
 }
