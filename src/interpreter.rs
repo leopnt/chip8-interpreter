@@ -416,6 +416,20 @@ impl Interpreter {
                         self.vi = memory::FONT_LOC + offset;
                     }
 
+                    // binary-coded decimal conversion
+                    0x33 => {
+                        let x = Interpreter::x(opcode);
+                        let vx = self.vx[x as usize];
+
+                        let right_digit = (vx / 1) % 10;
+                        let mid_digit = (vx / 10) % 10;
+                        let left_digit = (vx / 100) % 10;
+
+                        memory.write(self.vi, left_digit);
+                        memory.write(self.vi + 1, mid_digit);
+                        memory.write(self.vi + 2, right_digit);
+                    }
+
                     _ => panic!("Unknown NN for instruction: 0xFXNN"),
                 }
             }
@@ -923,5 +937,25 @@ mod tests {
         // hex(0x050 + 5 * 0x0A) = 0x82
         assert_eq!(0x82, interpreter.vi);
         assert_eq!(0xF0, mem.read(interpreter.vi));
+    }
+
+    #[test]
+    fn test_binary_coded_decimal_conversion() {
+        let mut mem = Memory::new();
+        mem.load_prog(&[
+            0x60, 0x9C, // set V0 to 0x9C (= 156)
+            0xA5, 0x00, // VI = 0x500
+            0xF0, 0x33, // mem write V0 at addr VI
+            0x00, 0x00,
+        ]);
+        let mut interpreter = Interpreter::new();
+
+        while !interpreter.stop() {
+            interpreter.step(&mut mem);
+        }
+
+        assert_eq!(1, mem.read(0x500));
+        assert_eq!(5, mem.read(0x501));
+        assert_eq!(6, mem.read(0x502));
     }
 }
