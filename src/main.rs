@@ -8,7 +8,7 @@ use display::Display;
 use interpreter::Interpreter;
 use memory::Memory;
 
-use winit::event::{Event, VirtualKeyCode};
+use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
 
@@ -56,22 +56,8 @@ fn main() {
     let mut start = Instant::now();
     let mut delta: f32 = 0.0;
     event_loop.run(move |event, _, control_flow| {
-        // Draw the current frame
-        if let Event::RedrawRequested(_) = event {
-            display.draw(&memory);
+        *control_flow = ControlFlow::Poll;
 
-            if display
-                .pixels
-                .render()
-                .map_err(|e| println!("pixels.render() failed: {}", e))
-                .is_err()
-            {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-        }
-
-        // Handle input events
         if input.update(&event) {
             // Close events
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
@@ -79,20 +65,42 @@ fn main() {
                 return;
             }
 
-            interpreter.decrement_timers();
-            interpreter.apply_input(&input);
-
             // Resize the window
             if let Some(size) = input.window_resized() {
                 display.pixels.resize_surface(size.width, size.height);
             }
 
-            // Update internal state and request a redraw
-            interpreter.step(&mut memory);
-            display.window().request_redraw();
-            let elapsed = start.elapsed();
-            delta = (elapsed.as_micros() as f32) / 1000_000.0;
-            start = Instant::now();
+            interpreter.apply_input(&input);
+        }
+
+        interpreter.decrement_timers();
+        interpreter.step(&mut memory);
+
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => *control_flow = ControlFlow::Exit,
+            Event::MainEventsCleared => {
+                display.draw(&memory);
+
+                if display
+                    .pixels
+                    .render()
+                    .map_err(|e| println!("pixels.render() failed: {}", e))
+                    .is_err()
+                {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+
+                display.window().request_redraw();
+
+                let elapsed = start.elapsed();
+                delta = (elapsed.as_micros() as f32) / 1000_000.0;
+                start = Instant::now();
+            }
+            _ => (),
         }
     })
 }
