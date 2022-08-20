@@ -229,7 +229,6 @@ impl Interpreter {
                     // add
                     0x4 => {
                         let overflows = vx.checked_add(vy).is_none() as u8;
-                        println!("{}", overflows);
 
                         self.set_vx(x, vx.wrapping_add(vy));
                         self.set_vf(overflows);
