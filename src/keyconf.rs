@@ -31,13 +31,13 @@ lazy_static! {
         m.insert(COSMACVIP::KEY1, VirtualKeyCode::Key1);
         m.insert(COSMACVIP::KEY2, VirtualKeyCode::Key2);
         m.insert(COSMACVIP::KEY3, VirtualKeyCode::Key3);
-        m.insert(COSMACVIP::KEY4, VirtualKeyCode::A);
-        m.insert(COSMACVIP::KEY5, VirtualKeyCode::Z);
+        m.insert(COSMACVIP::KEY4, VirtualKeyCode::Q);
+        m.insert(COSMACVIP::KEY5, VirtualKeyCode::W);
         m.insert(COSMACVIP::KEY6, VirtualKeyCode::E);
-        m.insert(COSMACVIP::KEY7, VirtualKeyCode::Q);
+        m.insert(COSMACVIP::KEY7, VirtualKeyCode::A);
         m.insert(COSMACVIP::KEY8, VirtualKeyCode::S);
         m.insert(COSMACVIP::KEY9, VirtualKeyCode::D);
-        m.insert(COSMACVIP::KEYA, VirtualKeyCode::W);
+        m.insert(COSMACVIP::KEYA, VirtualKeyCode::Z);
         m.insert(COSMACVIP::KEYB, VirtualKeyCode::C);
         m.insert(COSMACVIP::KEYC, VirtualKeyCode::Key4);
         m.insert(COSMACVIP::KEYD, VirtualKeyCode::R);
